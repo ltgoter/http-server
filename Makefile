@@ -1,7 +1,7 @@
 CC=g++
 CPPFLAGS=-O3 -I ./header
 LD_FLAGS=-levent
-OBJ=main.o httpparser.o
+OBJ=main.o httpparser.o requestHandler.o
 
 all: server test
 	./bin/server 

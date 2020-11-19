@@ -1,40 +1,4 @@
-#include <iostream>
-#include <stdlib.h>
-
-using namespace std;
-
-// int main(){
-    
-
-//     cout<<"server start"<<endl;
-
-//     return 0;W
-// }
-/* For sockaddr_in */
-#include <netinet/in.h>
-/* For socket functions */
-#include <sys/socket.h>
-/* For fcntl */
-#include <fcntl.h>
-
-#include <event2/event.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-
-#include <assert.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-
-#include "httpparser.hpp"
-
-#define MAX_LINE 16384
-
-void do_read(evutil_socket_t fd, short events, void *arg);
-void do_write(evutil_socket_t fd, short events, void *arg);
-
+#include "main.hpp"
 
 void
 readcb(struct bufferevent *bev, void *ctx)
@@ -48,7 +12,7 @@ readcb(struct bufferevent *bev, void *ctx)
     output = bufferevent_get_output(bev);
 
     http_request req;
-    http_response res;
+    http_response res(output);
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         // for (i = 0; i < n; ++i){
         //     cout<<line[i];
@@ -58,10 +22,12 @@ readcb(struct bufferevent *bev, void *ctx)
         free(line);
     }
     // printHeader(req.header);
-    char result[1024] ={0};
 
-    int len =res.to_c(result);
-    evbuffer_add(output, result, len);
+    handle_request(req, res);
+
+    // // write buffer for send
+    // int len =res.to_c(result);
+    // evbuffer_add(output, result, len);
 }
 
 void
@@ -101,7 +67,7 @@ do_accept(evutil_socket_t listener, short event, void *arg)
         evutil_make_socket_nonblocking(fd);
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
         bufferevent_setcb(bev, readcb, NULL, errorcb, NULL);
-        bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
+        bufferevent_setwatermark(bev, EV_READ, 0, MAX_BUFFER_SIZE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
     }
 }
