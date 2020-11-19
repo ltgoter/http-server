@@ -111,40 +111,36 @@ int http_response::sendERR(int err, const http_request& req){
     strftime (date,sizeof(date),"%a, %d %b %Y %T %Z",timeinfo);
 
     cout<<date<<":send err: "<<err<<endl;
-    stringstream ss;
-    string temp_status;
-    ss<<err;
-    ss>>temp_status;
     
-    string tmp("HTTP/1.1 "+  temp_status);
+    string msg;
     switch (err)
     {
     case http_state::NOTFOUND :
-        tmp+=" NOT FOUND\r\n";
+        msg=" NOT FOUND\r\n";;
         break;
     
     case http_state::BadRequest :
-        tmp+=" BadRequest\r\n";
+        msg=" BadRequest\r\n";
         break;
     
     case http_state::Forbidden :
-        tmp+=" Forbidden\r\n";
+        msg=" Forbidden\r\n";
         break;
 
     case http_state::SERVER_ERR :
-        tmp+=" SERVER_ERR\r\n";
+        msg=" SERVER_ERR\r\n";
         break;
 
     default:
-        tmp+=" WHATERROR\r\n";
+        msg=" WHATERROR\r\n";
         break;
     }
-    
+    string tmp("HTTP/1.1 "+  num2str(err) + msg);
 
     // cout<<date<<endl;
 
     addHeader("Date",date);
-    addHeader("Content-Length","45");
+    addHeader("Content-Length",num2str(msg.length()));
     addHeader("Content-Type","text/html");
     addHeader("Connection", "Keep-Alive");
     addHeader("Server","Apache");
@@ -152,7 +148,7 @@ int http_response::sendERR(int err, const http_request& req){
         tmp+=itr->first+": "+itr->second+"\r\n";
     }
     tmp+="\r\n";
-    tmp+="Error happended,please contact with admin...";
+    tmp+=msg;
     // memcpy(buffer, tmp.c_str(), tmp.length());
     // cout<<buffer<<endl;
     evbuffer_add(this->output, tmp.c_str(), tmp.length());
