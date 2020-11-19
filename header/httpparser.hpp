@@ -15,7 +15,12 @@
 #include <iostream>
 #include <sstream>
 
-#define static_dir_root "/root/http-server/static/"
+#include<sys/types.h>
+#include<sys/stat.h>
+#include <unistd.h>
+#include<fcntl.h> 
+#define static_dir_root "/home/lt/http-server/static"
+#define static_file "readme.txt"
 
 using namespace std;
 

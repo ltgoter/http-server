@@ -3,7 +3,7 @@
 
 #include <string>
 #include "httpparser.hpp"
-
+#include <dirent.h>
 
 using namespace std;
 
