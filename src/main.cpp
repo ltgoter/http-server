@@ -23,10 +23,10 @@ readcb(struct bufferevent *bev, void *ctx)
     //read header
     int temp_pan=1;
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
-        for (i = 0; i < n; ++i){
-            cout<<line[i];
-        }
-        cout<<endl;
+        // for (i = 0; i < n; ++i){
+        //     cout<<line[i];
+        // }
+        // cout<<endl;
         temp_pan= req->parseHeaderLine(line,n);
         if(temp_pan==0 || temp_pan == -1){//头读取结束
             break;
@@ -140,24 +140,17 @@ do_accept(evutil_socket_t listener, short event, void *arg)
         SSL_CTX *server_ctx;
         SSL *client_ctx;
 
-        // cout<<"?0"<<endl;
         server_ctx = (SSL_CTX *)arg_s->ctx;
-        // cout<<"?22"<<endl;
         client_ctx = SSL_new(server_ctx);
-        // cout<<"?33"<<endl;
         evbase = base;
 
 
         http_request* req=new http_request();
-        // cout<<"?1"<<endl;
         evutil_make_socket_nonblocking(fd);
-        // bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        // cout<<"?2"<<endl;
         bev = bufferevent_openssl_socket_new(evbase, fd, client_ctx,
                                          BUFFEREVENT_SSL_ACCEPTING,
                                          BEV_OPT_CLOSE_ON_FREE);
-        // cout<<"?3"<<endl;
-        bufferevent_setcb(bev, readcb, NULL, errorcb, req);
+        bufferevent_setcb(bev, readcb, NULL, NULL, req);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_BUFFER_SIZE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
     }
@@ -179,11 +172,7 @@ evssl_init(void)
 
     if (! SSL_CTX_use_certificate_chain_file(server_ctx, "localhost+1.pem") ||
         ! SSL_CTX_use_PrivateKey_file(server_ctx, "localhost+1-key.pem", SSL_FILETYPE_PEM)) {
-        puts("Couldn't read 'pkey' or 'cert' file.  To generate a key\n"
-           "and self-signed certificate, run:\n"
-           "  openssl genrsa -out pkey 2048\n"
-           "  openssl req -new -key pkey -out cert.req\n"
-           "  openssl x509 -req -days 365 -in cert.req -signkey pkey -out cert");
+        puts("Couldn't read 'pkey' or 'cert' file.");
         return NULL;
     }
     SSL_CTX_set_options(server_ctx, SSL_OP_NO_SSLv2);

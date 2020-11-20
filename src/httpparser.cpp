@@ -60,7 +60,7 @@ int http_request::parseBodyLine(struct evbuffer *input){
     char* split;
     char *line;
     size_t i,n;
-    
+    string tagBoundry="--"+boundary;
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         // cout<<"stage"<<parseStage<<endl;
         string input_s = string(line,n);
@@ -96,7 +96,8 @@ int http_request::parseBodyLine(struct evbuffer *input){
         }else if(parseStage == http_parse_stage::fileType){
             parseStage = http_parse_stage::val;
         }else if(parseStage == http_parse_stage::val){
-            if(string(line,n) == "--"+boundary ){
+            // string tmp=string(line,n);
+            if(string(line,n) == "--"+boundary || string(line,2)=="--"){
                 parseStage = http_parse_stage::bodyBoundry;
             }else{
                 if(!outfile.is_open())
@@ -218,7 +219,6 @@ int http_response::sendERR(int err, const http_request& req){
     evbuffer_add(this->output, tmp.c_str(), tmp.length());
     return err;
 }
-
 
 int http_response::recvFile(const http_request& req){
     time_t rawtime;
