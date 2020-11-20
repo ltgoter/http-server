@@ -98,6 +98,11 @@ errorcb(struct bufferevent *bev, short error, void *ctx)
     } else if (error & BEV_EVENT_ERROR) {
         /* check errno to see what error occurred */
         /* ... */
+        int err = EVUTIL_SOCKET_ERROR();
+
+        fprintf(stderr, "Got an error %d (%s) on the listener. "
+            "Shutting down.\n", err, evutil_socket_error_to_string(err));
+        // event_base_loopexit(base, NULL);
         cout<<"check errno to see what error occurred"<<endl;
     } else if (error & BEV_EVENT_TIMEOUT) {
         /* must be a timeout event handle, handle it */
@@ -108,28 +113,82 @@ errorcb(struct bufferevent *bev, short error, void *ctx)
     bufferevent_free(bev);
 }
 
+
+struct accept_arg{
+    struct event_base *base;
+    SSL_CTX *ctx;
+};
+
 void
 do_accept(evutil_socket_t listener, short event, void *arg)
 {
     cout<<"do accept"<<endl;
-    struct event_base *base = (struct event_base *)arg;
+    accept_arg * arg_s= (struct accept_arg *)arg;
+    struct event_base *base = arg_s->base;
     struct sockaddr_storage ss;
     socklen_t slen = sizeof(ss);
     int fd = accept(listener, (struct sockaddr*)&ss, &slen);
     if (fd < 0) {
         perror("accept");
-    } else if (fd > FD_SETSIZE) {
-        close(fd);
+    // } else if (fd > FD_SETSIZE) {
+    //     close(fd);
     } else {
+        
+        struct event_base *evbase;
         struct bufferevent *bev;
-        http_request* req=new http_request();
 
+        SSL_CTX *server_ctx;
+        SSL *client_ctx;
+
+        // cout<<"?0"<<endl;
+        server_ctx = (SSL_CTX *)arg_s->ctx;
+        // cout<<"?22"<<endl;
+        client_ctx = SSL_new(server_ctx);
+        // cout<<"?33"<<endl;
+        evbase = base;
+
+
+        http_request* req=new http_request();
+        // cout<<"?1"<<endl;
         evutil_make_socket_nonblocking(fd);
-        bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+        // bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+        // cout<<"?2"<<endl;
+        bev = bufferevent_openssl_socket_new(evbase, fd, client_ctx,
+                                         BUFFEREVENT_SSL_ACCEPTING,
+                                         BEV_OPT_CLOSE_ON_FREE);
+        // cout<<"?3"<<endl;
         bufferevent_setcb(bev, readcb, NULL, errorcb, req);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_BUFFER_SIZE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
     }
+}
+
+static SSL_CTX *
+evssl_init(void)
+{
+    SSL_CTX  *server_ctx;
+
+    /* Initialize the OpenSSL library */
+    SSL_load_error_strings();
+    SSL_library_init();
+    /* We MUST have entropy, or else there's no point to crypto. */
+    if (!RAND_poll())
+        return NULL;
+
+    server_ctx = SSL_CTX_new(SSLv23_server_method());
+
+    if (! SSL_CTX_use_certificate_chain_file(server_ctx, "localhost+1.pem") ||
+        ! SSL_CTX_use_PrivateKey_file(server_ctx, "localhost+1-key.pem", SSL_FILETYPE_PEM)) {
+        puts("Couldn't read 'pkey' or 'cert' file.  To generate a key\n"
+           "and self-signed certificate, run:\n"
+           "  openssl genrsa -out pkey 2048\n"
+           "  openssl req -new -key pkey -out cert.req\n"
+           "  openssl x509 -req -days 365 -in cert.req -signkey pkey -out cert");
+        return NULL;
+    }
+    SSL_CTX_set_options(server_ctx, SSL_OP_NO_SSLv2);
+
+    return server_ctx;
 }
 
 void
@@ -139,6 +198,11 @@ run(void)
     struct sockaddr_in sin;
     struct event_base *base;
     struct event *listener_event;
+
+    SSL_CTX *ctx;
+    ctx = evssl_init();
+    if (ctx == NULL)
+        return;
 
     base = event_base_new();
     if (!base)
@@ -168,7 +232,10 @@ run(void)
         return;
     }
 
-    listener_event = event_new(base, listener, EV_READ|EV_PERSIST, do_accept, (void*)base);
+    accept_arg arg;
+    arg.base=base;
+    arg.ctx=ctx;
+    listener_event = event_new(base, listener, EV_READ|EV_PERSIST, do_accept, (void*)&arg);
     /*XXX check it */
     event_add(listener_event, NULL);
 

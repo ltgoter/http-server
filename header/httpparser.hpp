@@ -20,6 +20,11 @@
 #include<sys/stat.h>
 #include <unistd.h>
 #include<fcntl.h> 
+
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <openssl/pkcs12.h>
+
 #define static_dir_root "/home/lt/http-server/static"
 #define static_file "readme.txt"
 

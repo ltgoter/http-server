@@ -1,6 +1,6 @@
 CC=g++
 CPPFLAGS=-O3 -I ./header
-LD_FLAGS=-levent
+LD_FLAGS=-levent -levent_openssl -lssl -lcrypto
 OBJ=main.o httpparser.o requestHandler.o
 
 all: server test

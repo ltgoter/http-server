@@ -31,6 +31,14 @@ using namespace std;
 #include <stdio.h>
 #include <errno.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+
+#include <event.h>
+#include <event2/listener.h>
+#include <event2/bufferevent_ssl.h>
+
 #include "httpparser.hpp"
 #include "requestHandler.hpp"
 
