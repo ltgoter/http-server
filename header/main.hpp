@@ -36,7 +36,6 @@ using namespace std;
 
 #define MAX_BUFFER_SIZE 1024*1024*128
 
-#define MAX_RES_BUFFER 1024*1024
 
 void do_read(evutil_socket_t fd, short events, void *arg);
 void do_write(evutil_socket_t fd, short events, void *arg);

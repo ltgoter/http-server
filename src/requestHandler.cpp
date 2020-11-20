@@ -4,8 +4,15 @@ void handle_request(const http_request& req, http_response& res){
     int status;
     // check request
     if((status=checkURL(req))== http_state::OK){
-        //send
-        res.sendFile(req.url,req);
+        if(req.method == http_method::GET){
+            //send
+            res.sendFile(req);
+        }else if(req.method == http_method::POST){
+            res.recvFile(req);
+        }else{
+            // cout<<"method err~"<<endl;
+            res.sendERR(http_state::BadRequest,req);
+        }
     }else{
         res.sendERR(status,req);
     }

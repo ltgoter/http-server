@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #include<sys/types.h>
 #include<sys/stat.h>
@@ -44,7 +45,22 @@ static void printHeader(const vector< pair<string, string> >& header){
     }
 }
 
+enum http_parse_stage{
+    header=1,
+    bodyBoundry,
+    bodyHeader,
+    fileType,
+    val,
+    err=-1
+};
+
 class http_request{
+private:
+    string filename;
+    int parseStage;
+    int bodySize;
+    int leftSize;
+    string boundary;
 public:
     string url;
     http_method method;
@@ -52,8 +68,9 @@ public:
     vector< pair<string, string> > header;
     vector<char> body;
     int parseHeaderLine(char* input, int n);
+    int parseBodyLine(struct evbuffer *input);
 
-    http_request(){}
+    http_request(){bodySize=0;leftSize=0;url="";method=http_method::UNSUPPORT;parseStage=http_parse_stage::header;}
 };
 
 class http_response{
@@ -71,10 +88,9 @@ public:
     
     void addHeader(string title, string value);
     // int evbuffer_add_file(struct evbuffer *output, int fd, ev_off_t offset,size_t length);
-    int sendFile(string file,const http_request& req);
+    int sendFile(const http_request& req);
     int sendERR(int err,const http_request& req);
-    void addBody(const char* filename);
-    int to_c(char* buffer);
+    int recvFile(const http_request& req);
 };
 
 #endif
